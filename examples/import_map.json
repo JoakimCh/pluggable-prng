@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "pluggable-prng": "./node_modules/pluggable-prng/source/pluggablePrng.js",
+    "crypto": "node:crypto"
+  }
+}

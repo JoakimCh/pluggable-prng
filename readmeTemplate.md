@@ -1,0 +1,347 @@
+# pluggable-prng
+
+### Description
+An [ES module](https://flaviocopes.com/es-modules/) with a class providing a [Pseudo-random number generator](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) which is "pluggable", meaning you can plug-in any PRNG algorithm. It's also ["seedable"](https://en.wikipedia.org/wiki/Random_seed) meaning that it can have a reproducible ([deterministic](https://en.wikipedia.org/wiki/Deterministic_algorithm)) output based on its starting seed. The module includes plugins for some fast and good (insecure) PRNGs ([Alea](https://github.com/nquinlan/better-random-numbers-for-javascript-mirror#alea), [Sfc32](http://pracrand.sourceforge.net/RNG_engines.txt), [Mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c), [Pcg32](https://www.pcg-random.org/download.html)), but also a much slower [cryptographically secure PRNG](https://en.wikipedia.org/wiki/Cryptographically-secure_pseudorandom_number_generator) which is using the [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API). It's compatible with Node.js, [Deno](https://deno.land)¹ and the browser².
+
+1. The Web Crypto PRNG is not compatible with Deno as of Deno v1.9.2, everything else is.
+2. Everything runs fine in a [Chromium based browser](https://en.wikipedia.org/wiki/Chromium_(web_browser)), for other browsers use [Babel](https://babeljs.io).
+
+### Funding
+
+If you find this useful then please consider helping me out (I'm jobless and sick). For more information visit my [GitHub sponsors page](https://github.com/sponsors/JoakimCh), my [profile](https://github.com/JoakimCh) or my [simple website](https://joakimch.github.io/funding.html).
+
+### Some features
+
+* Very easy to use API.
+* Supports both sync and [async](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function) `RandomGenerator` and `SeedInitializer` (it auto-detects it).
+* The pluggable `RandomGenerator` algorithm only needs to be able to output random `Uint32` numbers, `PluggablePRNG` will derive any numbers from them (signed, unsigned, single and double precision floats).
+
+### Function list (class PluggablePRNG)
+
+* `constructor({ [seed], RandomGenerator, [SeedInitializer] })`
+* `randomInteger(min, max)`
+* `randomFloat32([minOrMax], [max])`
+* `randomFloat64([minOrMax], [max])`
+* `randomUint32()`
+* `randomBytes(count)`
+* `skipAhead(times)`
+* `reset()`
+* `exportState()`
+* `importState(state)`
+* `changeSeed(seed)`
+
+### Export list (module pluggable-prng)
+
+* `PluggablePRNG`
+* `RandomGenerator_Alea`
+* `RandomGenerator_Sfc32`
+* `RandomGenerator_Pcg32`
+* `RandomGenerator_Mulberry32`
+* `RandomGenerator_WebCrypto`
+* `SeedInitializer_Alea`
+* `SeedInitializer_Uint32`
+* `SeedInitializer_Uint64`
+* `SeedInitializer_WebCrypto`
+* `Xmur3` Hash function
+* `Mash` Hash function
+* `longfn` [64-bit arithmetic library](https://www.npmjs.com/package/longfn) (used by Pcg32)
+* `Uint64` A slower (but easier) alternative to longfn
+
+The 4 last exports in this list are used internally but was made available to anyone wanting to do whatever with them.
+
+### Performance
+
+On my `Intel® Core™ i5-4200U CPU @ 1.60GHz × 4` this is a typical result (notice the runtime optimization kicking in after some iterations):
+```
+Iterations: 10000
+Alea: 112.943ms
+Mulberry32: 101.558ms
+Sfc32: 52.976ms
+Pcg32: 74.819ms
+WebCrypto: 4.813s
+
+Iterations: 10000
+Alea: 29.493ms
+Mulberry32: 28.869ms
+Sfc32: 41.551ms
+Pcg32: 59.258ms
+WebCrypto: 4.689s
+```
+
+### How to use
+
+#### Install using [NPM](https://www.npmjs.com/)
+
+```shell
+npm i pluggable-prng
+```
+
+#### Import the ES module into Node.js
+
+```js
+import {the, exports, you, want} from 'pluggable-prng'
+```
+Got problems using ES modules? [Click here](https://stackoverflow.com/questions/45854169/how-can-i-use-an-es6-import-in-node-js/56350495#56350495) or [read this](https://nodejs.org/api/esm.html).
+
+#### Import the ES module into the browser or Deno
+
+```js
+import {the, exports, you, want} from '/node_modules/pluggable-prng/source/pluggablePrng.js'
+```
+
+### Example
+
+```js
+import {
+  PluggablePRNG,
+  RandomGenerator_Alea,
+  SeedInitializer_Alea
+} from 'pluggable-prng'
+
+const log = console.log
+const wideNumber = new Intl.NumberFormat('fullwide', {maximumSignificantDigits: 21})
+
+await prngDemoOutput(new PluggablePRNG({
+  seed: 'Hello World',
+  RandomGenerator: RandomGenerator_Alea,
+  SeedInitializer: SeedInitializer_Alea
+}))
+
+async function prngDemoOutput(prng, iterations=5) {
+  await prng.readyPromise // if set (will be set when using async RandomGenerator or SeedInitializer)
+  log('\nrandomFloat32()')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomFloat32() // await is only needed if the RandomGenerator is async
+    log(wideNumber.format(n), n.toString(2))
+  }
+  log('\nrandomFloat32(4)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomFloat32(4)
+    log(wideNumber.format(n), n.toString(2))
+  }
+  log('\nrandomFloat32(5,7)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomFloat32(5,7)
+    log(wideNumber.format(n), n.toString(2))
+  }
+  
+  log('\nrandomFloat64()')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomFloat64()
+    log(wideNumber.format(n), n.toString(2))
+  }
+  log('\nrandomFloat64(4)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomFloat64(4)
+    log(wideNumber.format(n), n.toString(2))
+  }
+  log('\nrandomFloat64(5,7)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomFloat64(5,7)
+    log(wideNumber.format(n), n.toString(2))
+  }
+  
+  log('\nrandomInteger(-0xFFFF_FFFF, 0xFFFF_FFFF)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomInteger(-0xFFFF_FFFF, 0xFFFF_FFFF)
+    log(n)
+  }
+  log('\nrandomInteger(0, 4)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomInteger(0, 4)
+    log(n)
+  }
+  log('\nrandomInteger(0, Number.MAX_SAFE_INTEGER)')
+  log(integerToHex(2**53-1, 8), '== 53 bits all set (Number.MAX_SAFE_INTEGER)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomInteger(0, Number.MAX_SAFE_INTEGER)
+    log(integerToHex(n, 8))
+  }
+  log('\nrandomInteger(0, FF_FFFF_FFFF)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomInteger(0, 0xFF_FFFF_FFFF)
+    log(integerToHex(n, 8))
+  }
+  log('\nrandomInteger(FFFF_FFFF_0000, FFFF_FFFF_FFFF)')
+  for (let i=0; i<iterations; i++) {
+    let n = await prng.randomInteger(0xFFFF_FFFF_0000, 0xFFFF_FFFF_FFFF)
+    log(integerToHex(n, 8))
+  }
+  log('\nrandomBytes(100)')
+  log(await prng.randomBytes(100))
+}
+
+function integerToHex(integer, paddingByteSize = 4, grouping = 4) {
+  let hex = integer.toString(16).toUpperCase()
+  if (hex.length < paddingByteSize*2)
+    hex = '0'.repeat((paddingByteSize*2) - hex.length) + hex
+  if (grouping) {
+    let result = ''
+    if (hex.length % grouping) result += hex.slice(0, hex.length % grouping) + '_'
+    for (let i=hex.length % grouping; i<hex.length; i+=grouping) {
+      result += hex.slice(i, i+grouping) + '_'
+    }
+    hex = result.slice(0, -1)
+  }
+  return hex
+}
+```
+
+#### Console output from example:
+
+```
+randomFloat32()
+0.40236979722976685 0.011001110000000110110101
+0.665740430355072 0.101010100110110111110111
+0.8638420104980469 0.110111010010010011
+0.3918175995349884 0.0110010001001110001010001
+0.6584303379058838 0.1010100010001110111001
+
+randomFloat32(4)
+3.8685505390167236 11.1101111001011001010101
+1.3849899768829346 1.0110001010001110101101
+3.5557355880737305 11.10001110010001001011
+1.9126533269882202 1.11101001101000111010011
+2.8120803833007812 10.11001111111001001
+
+randomFloat32(5,7)
+6.76179838180542 110.110000110000010100111
+5.768731594085693 101.110001001100101110011
+5.725522041320801 101.10111001101110111101
+6.2515740394592285 110.010000000110011100101
+5.0234503746032715 101.000001100000000011011
+
+randomFloat64()
+0.690803412413217 0.1011000011011000011111100001000001000111101010111111
+0.11257452328114703 0.0001110011010001101011110001011111011010111101100001
+0.7540652142135055 0.11000001000010100110101011111010000110010010011001001
+0.1101138829540963 0.00011100001100000110110001100110000111111001100000101
+0.9723450582551325 0.111110001110101110011011000100011010001000001100111
+
+randomFloat64(4)
+1.4401003736030833 1.011100001010101001101011000001111001010100100110111
+3.822690506829564 11.11010010100110111101100001010101100100000000100101
+2.8196269628488606 10.11010001110100110001001010011000010110110000110011
+1.8257031653043914 1.1101001101100001010010000101101100101111101000001
+0.04597539088946645 0.000010111100010100001011000100000100101010000011111
+
+randomFloat64(5,7)
+5.916290461635426 101.11101010100100100000001011111110010111000110001111
+5.595896881361192 101.10011000100011001011001010110001001111000001011
+5.998995254544729 101.1111111110111110001001110010101100100000111110011
+6.927475819224875 110.11101101011011110000111000100111011001101101001001
+6.469594235393646 110.01111000001101110101001111101011011001111110010011
+
+randomInteger(-0xFFFF_FFFF, 0xFFFF_FFFF)
+-929633365
+1560369360
+-1435113722
+-2519637442
+-1282205992
+
+randomInteger(0, 4)
+0
+4
+1
+2
+2
+
+randomInteger(0, Number.MAX_SAFE_INTEGER)
+001F_FFFF_FFFF_FFFF == 53 bits all set (Number.MAX_SAFE_INTEGER)
+000C_D943_882C_47C5
+000E_E298_5576_D500
+0004_7F7A_09A6_5F8B
+0004_31EA_E617_4A81
+0008_9221_89A0_FE6E
+
+randomInteger(0, FF_FFFF_FFFF)
+0000_00A0_4ED6_D5DE
+0000_009C_7602_F5D1
+0000_00CE_2800_08B7
+0000_0034_C35B_D273
+0000_006F_972C_022A
+
+randomInteger(FFFF_FFFF_0000, FFFF_FFFF_FFFF)
+0000_FFFF_FFFF_F919
+0000_FFFF_FFFF_1F12
+0000_FFFF_FFFF_46E9
+0000_FFFF_FFFF_E02C
+0000_FFFF_FFFF_EBEC
+
+randomBytes(100)
+Uint8Array(100) [
+   84,  51,  40, 249, 106,  90,  31, 200, 190,  78,  49,  41,
+   25,  27, 199, 199,  86, 251,  44, 162, 103,  57,   0, 193,
+   81, 149,  94,  36,  15,  89,  40, 240, 219,  12,  32, 223,
+  113, 130,  90, 113, 188, 164, 254,  76, 164,  24,  73, 146,
+  195, 189,  24,  56,  43, 141, 196, 127, 150, 245, 101, 204,
+  121, 176, 163, 171,  92, 235, 162,  37, 140,  50,  26, 243,
+  203,  29,  38, 199, 201, 229,  22, 234,  70,  40,  90,  18,
+   48, 182, 166,   5, 114,  94,  30, 146, 181, 227,  79, 209,
+    9, 218, 216,  18
+]
+```
+
+### Example on how to implement a `RandomGenerator`
+
+```js
+/**
+ * A `RandomGenerator` using the Sfc32 algorithm. It's compatible with any `SeedInitializer` returning unsigned 32-bit integers, e.g. `SeedInitializer_Uint32`.
+ */
+export class RandomGenerator_Sfc32 {
+  #a; #b; #c; #counter // where the state is kept
+  static seedsNeeded = 3 // tell the SeedInitializer to call the constructor with 3 seeds (instead of the default 1)
+  constructor(uint32_a, uint32_b, uint32_c) {
+    if (arguments.length != 3) throw Error('Sfc32 require 3 integer seeds.')
+    if (typeof uint32_a != 'number' || !Number.isInteger(uint32_a)) throw Error('Sfc32 require integer seeds, this is not an integer: '+uint32_a)
+    this.#a = uint32_a >>> 0
+    this.#b = uint32_b >>> 0
+    this.#c = uint32_c >>> 0
+    this.#counter = 1
+    this.randomUint32(); this.randomUint32() // forward to a good state
+  }
+  randomUint32() { // PluggablePRNG will implement the other variants
+    let result = (this.#a + this.#b + this.#counter++) >>> 0
+    this.#a = (this.#b ^ (this.#b >>> 9)) >>> 0
+    this.#b = (this.#c + (this.#c  << 3)) >>> 0
+    this.#c = (result + ((this.#c << 21) | (this.#c >>> 11))) >>> 0
+    return result
+  }
+  exportState() {
+    return [this.#a, this.#b, this.#c, this.#counter]
+  }
+  importState(state) {
+    [this.#a, this.#b, this.#c, this.#counter] = state
+  }
+}
+```
+
+### Example on how to implement a `SeedInitializer`
+
+```js
+/**
+ * A `SeedInitializer` compatible with any `RandomGenerator` requiring unsigned 64-bit `BigInt` as seeds, `seed` can be called several times to generate more seeds from its input seed.
+ */
+export class SeedInitializer_Uint64 {
+  constructor(seed) {
+    if (seed == undefined) seed = +new Date // "random seed"
+    let nextState = 123456n, pcg
+    for (let char of seed.toString()) {
+      pcg = new RandomGenerator_Pcg64(nextState, BigInt(char.codePointAt(0)))
+      nextState = pcg.randomUint64()
+    }
+    pcg = new RandomGenerator_Pcg64(nextState, 0n)
+    this.seed = pcg.randomUint64.bind(pcg)
+  }
+}
+```
+
+# Auto-generated API documentation (from JSDoc)
+
+{{>main}}
+
+### End of readme
+```
+Consciousness was not a creation of your brain, it's the opposite.
+Remember who you are, you have every answer inside of you.
+```

@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "dependencies": {
+    "pluggable-prng": "^1.0.0"
+  }
+}
