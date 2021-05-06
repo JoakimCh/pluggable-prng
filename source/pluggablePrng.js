@@ -29,6 +29,8 @@ export class PluggablePRNG {
    * @param {*} [options.SeedInitializer] If the `RandomGenerator` needs the seed to go through a special algorithm to convert it into the required format then supply a "seed initializer" class here.
    */
   constructor({seed = undefined, RandomGenerator, SeedInitializer = undefined}) {
+    if (RandomGenerator == undefined) throw Error('I think you forgot to plug in the RandomGenerator, I expected something like this: {seed, RandomGenerator}')
+
     this.#SeedInitializer = SeedInitializer
     this.#RandomGenerator = RandomGenerator
     
