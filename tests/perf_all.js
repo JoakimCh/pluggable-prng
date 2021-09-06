@@ -1,24 +1,60 @@
 
 import {
   PluggablePRNG,
+  RandomGenerator_Alea,
+  SeedInitializer_Alea,
+  RandomGenerator_Mulberry32,
+  RandomGenerator_Sfc32,
+  RandomGenerator_Pcg32,
+  SeedInitializer_Uint32,
+  SeedInitializer_Uint64,
   RandomGenerator_WebCrypto,
   SeedInitializer_WebCrypto
 } from '../source/pluggablePrng.js'
 
 import {assert, assertMoreOrEqual, assertLessOrEqual} from './shared.js'
 
-if (globalThis.Deno?.version?.deno) {
-  console.log('Deno doesn\'t support the Web Crypto API, at least not when I wrote this test...')
-} else {
-  await prngOutputTest(new PluggablePRNG({
-    seed: {seed: 0, salt: 'Data to secure the random generator output when a weak (as in short or easy to guess) seed is used.'},
-    RandomGenerator: RandomGenerator_WebCrypto,
-    SeedInitializer: SeedInitializer_WebCrypto
-  }), 5_000)
+const prngs = [
+  [
+    'Alea',
+    RandomGenerator_Alea,
+    SeedInitializer_Alea
+  ], [
+    'Mulberry32',
+    RandomGenerator_Mulberry32,
+    SeedInitializer_Uint32
+  ], [
+    'Sfc32',
+    RandomGenerator_Sfc32,
+    SeedInitializer_Uint32
+  ], [
+    'Pcg32',
+    RandomGenerator_Pcg32,
+    SeedInitializer_Uint64
+  ], [
+    'WebCrypto',
+    RandomGenerator_WebCrypto,
+    SeedInitializer_WebCrypto
+  ]
+]
+
+// Through these iterations you'll notice how the JS optimizer will eventually make some of the code much faster.
+for (const iterations of [10_000, 10_000, 20_000, 20_000, 30_000, 30_000, 200_000, 200_000, 400_000, 400_000]) {
+  console.log('Iterations:', iterations)
+  for (const p of prngs) {
+    const prng = new PluggablePRNG({
+      seed: p[1] != RandomGenerator_WebCrypto ? 'test' : {seed: 'test', salt: 'A secure salt so that we are OK with the weak seed...'},
+      RandomGenerator: p[1],
+      SeedInitializer: p[2]
+    })
+    await prngOutputTest(p[0], prng, iterations)
+  }
+  console.log()
 }
 
-async function prngOutputTest(prng, iterations) {
+async function prngOutputTest(title, prng, iterations) {
   await prng.readyPromise // if set
+  console.time(title)
   for (let i=0; i<iterations; i++) {
     let n = await prng.randomFloat32()
     assertMoreOrEqual(n, 0); assertLessOrEqual(n, 1)
@@ -70,4 +106,5 @@ async function prngOutputTest(prng, iterations) {
     assert(Number.isSafeInteger(n))
     assertMoreOrEqual(n, 0xFFFF_FFFF_0000); assertLessOrEqual(n, 0xFFFF_FFFF_FFFF)
   }
+  console.timeEnd(title)
 }

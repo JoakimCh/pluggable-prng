@@ -1,6 +1,6 @@
 {
   "name": "pluggable-prng",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "author": "Joakim L. Christiansen (https://joakimch.github.io)",
   "license": "MIT",
   "type": "module",
@@ -10,7 +10,7 @@
   ],
   "repository": "github:JoakimCh/pluggable-prng",
   "funding": "https://joakimch.github.io/funding.html",
-  "description": "An ES module with a class providing a \"Pseudo-random number generator\" which is \"pluggable\" meaning you can plug-in any PRNG algorithm. It's also \"seedable\" meaning that it can have a reproducible (deterministic) output based on its starting seed. The module includes plugins for some fast and good insecure PRNG's (Alea, Sfc32, Mulberry32, Pcg32), but also a much slower cryptographically secure PRNG which is using the Web Crypto API. Compatible with Node.js, Deno¹ and the browser².",
+  "description": "An ES module with a class providing a \"Pseudo-random number generator\" which is \"pluggable\" meaning you can plug-in any PRNG algorithm. It's also \"seedable\" meaning that it can have a reproducible (deterministic) output based on its starting seed. The module includes plugins for some fast and good insecure PRNG's (Alea, Sfc32, Mulberry32, Pcg32), but also a fast cryptographically secure PRNG which is using the Web Crypto API. Compatible with Node.js, Deno¹ and the browser².",
   "keywords": [
     "prng",
     "pluggable",
@@ -40,7 +40,8 @@
   "scripts": {
     "test": "node tests/node_test_runAll.js",
     "perf": "node tests/node_perf_runAll.js",
-    "docs": "jsdoc2md --template readmeTemplate.md source/pluggablePrng.js > readme.md"
+    "docs": "jsdoc2md --template readmeTemplate.md source/pluggablePrng.js > readme.md",
+    "prepublishOnly": "npm run test && npm run docs"
   },
   "devDependencies": {
     "jsdoc-to-markdown": "^7.0.1"

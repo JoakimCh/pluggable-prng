@@ -1,12 +1,18 @@
 
-const nodejs = (globalThis.Buffer && globalThis.process) ? process.version : undefined
+const nodejs = globalThis.process?.versions?.node
 if (nodejs) globalThis['crypto'] = (await import('crypto')).webcrypto
 
 /**
  * A cryptographically secure `RandomGenerator` using the Web Crypto API's AES-CTR encryption to achieve this. Designed to be used with `SeedInitializer_WebCrypto` for the generation of a secure encryption key used as its input seed. Compared to the other PRNGs it's extremely slow, depending on your usage this might be OK or NOT. Use cases could be card and casino games, etc.
  */
+const bufferSize = 200_000 // buffered random uint32's
+// const zeroedData = new Uint32Array(bufferSize) // no performance gain in doing this
 export class RandomGenerator_WebCrypto {
-	#key; #counter; #prevValue // these keeps the state
+	#key
+  #iv = new Uint32Array(4) // 4x4 = 16 = 128-bits
+  #bufferIndex = bufferSize // indicating end of buffer (forcing it to refill)
+  #bufferedUint32s
+  #stateJustImported
 	constructor(key) {
     if (nodejs) {
       if (!(key instanceof crypto.CryptoKey)) throw Error('The seed must be an instance of a CryptoKey (AES-CTR).')
@@ -14,34 +20,50 @@ export class RandomGenerator_WebCrypto {
       if (!(key instanceof CryptoKey)) throw Error('The seed must be an instance of a CryptoKey (AES-CTR).')
     }
 		this.#key = key
-		this.#counter = new Uint32Array(4)
 	}
+  async #bufferRandomData(incrementCounter = true) {
+    if (incrementCounter && this.#iv[0]++ == 0xFFFF_FFFF) { // increment our 128-bit counter
+      this.#iv[0] = 0
+      if (this.#iv[1]++ == 0xFFFF_FFFF) {
+        this.#iv[1] = 0
+        if (this.#iv[2]++ == 0xFFFF_FFFF) {
+          this.#iv[2] = 0
+          if (this.#iv[3]++ == 0xFFFF_FFFF) {
+            this.#iv[3] = 0
+          }
+        }
+      }
+    }
+    const encrypted = await crypto.subtle.encrypt({
+      name: 'AES-CTR',
+      counter: this.#iv, // the rightmost length bits of this block are used for the counter, and the rest is used for the nonce
+      length: 64 // then the first half of counter is the nonce and the second half is used for the counter
+    }, this.#key, new Uint32Array(bufferSize) /* zeroedData */) // encrypt zeroed data
+    this.#bufferedUint32s = new Uint32Array(encrypted)
+  }
 	async randomUint32() {
-		// Good luck getting it to repeat, even if it does the usage of #prevValue keeps this PRNG secure.
-		if (this.#counter[0]++ == 0xFFFF_FFFF) {
-			this.#counter[0] = 0
-			if (this.#counter[1]++ == 0xFFFF_FFFF) this.#counter[1] = 0
-		}
-		const encrypted = await crypto.subtle.encrypt({
-			name: 'AES-CTR',
-			counter: this.#counter, // (a BufferSource)
-			length: this.#counter.byteLength * 8
-		}, this.#key, this.#prevValue || new Uint32Array(1))
-
-		this.#prevValue = encrypted
-		return new Uint32Array(encrypted)[0]
+    if (this.#bufferIndex == bufferSize) { // if more random uint32s are needed
+      await this.#bufferRandomData()
+      this.#bufferIndex = 0
+      this.#stateJustImported = false
+    } else if (this.#stateJustImported) {
+      this.#stateJustImported = false
+      await this.#bufferRandomData(false) // does not increment the counter in the IV
+    }
+    return this.#bufferedUint32s[this.#bufferIndex++]
 	}
 	exportState() {
 		return [
-      this.#key, 
-      new Uint32Array(this.#counter.buffer.slice(0)), // slice creates a copy
-      this.#prevValue
+      this.#key,
+      new Uint32Array(this.#iv.buffer.slice(0)), // slice creates a copy
+      this.#bufferIndex
     ]
 	}
 	importState(state) {
-		this.#key       = state[0]
-    this.#counter   = new Uint32Array(state[1].buffer.slice(0))
-    this.#prevValue = state[2]
+		this.#key = state[0]
+    this.#iv = new Uint32Array(state[1].buffer.slice(0))
+    this.#bufferIndex = state[2]
+    this.#stateJustImported = true // so this doesn't have to be async
 	}
 }
 
@@ -60,7 +82,7 @@ export class SeedInitializer_WebCrypto {
 		}
 		this.#salt = salt
 		if (this.#seed == undefined && this.#salt == undefined) {
-			this.#seed = crypto.getRandomValues(new Uint8Array(32))
+      this.#seed = crypto.getRandomValues(new Uint8Array(32))
 		}
 	}
 
@@ -82,7 +104,7 @@ export class SeedInitializer_WebCrypto {
 		} else if (this.#salt.byteLength < 32) {
 			throw Error('The salt needs to contain at least 256 bits of data to ensure cryptographically secure random values, bits given: '+this.#salt.byteLength*8)
 		}
-
+    
 		const seedKey = await crypto.subtle.importKey(
 			'raw', this.#seed, 'HKDF', false, ['deriveKey', 'deriveBits']
 		)

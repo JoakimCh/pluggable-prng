@@ -59,7 +59,7 @@ export class PluggablePRNG {
         value.then(() => {  // when value is ready
           this.#initialState = randomGenerator.exportState?.()
           readyPromiseResolve()
-        })
+        }).catch(error => {throw error})
         //#region async implementation
         this.randomBytes = async function(numBytes = mandatory('numBytes')) {
           const intsToGet = Math.ceil(numBytes / 4)
@@ -158,7 +158,7 @@ export class PluggablePRNG {
           }
           randomGenerator = new this.#RandomGenerator(...seeds)
           rndGenInit(randomGenerator)
-        })
+        }).catch(error => {throw error})
       } else {
         const seeds = [generatedSeed]
         if (this.#RandomGenerator.seedsNeeded) {
