@@ -8,6 +8,7 @@ export {RandomGenerator_Mulberry32} from './mulberry32.js'
 export {SeedInitializer_Uint32} from './uint32initializer.js'
 export {SeedInitializer_Uint64} from './uint64initializer.js'
 export {RandomGenerator_WebCrypto, SeedInitializer_WebCrypto} from './webCrypto.js'
+export {RandomGenerator_IronWellons32} from './ironWellons32.js';
 export {Xmur3} from './xmur3.js'
 export * as longfn from './longfn.js'
 export {Uint64} from './uint64.js'
