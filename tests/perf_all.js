@@ -3,6 +3,7 @@ import {
   PluggablePRNG,
   RandomGenerator_Alea,
   SeedInitializer_Alea,
+  RandomGenerator_IronWellons32,
   RandomGenerator_Mulberry32,
   RandomGenerator_Sfc32,
   RandomGenerator_Pcg32,
@@ -35,6 +36,10 @@ const prngs = [
     'WebCrypto',
     RandomGenerator_WebCrypto,
     SeedInitializer_WebCrypto
+  ], [
+    'IronWellons32',
+    RandomGenerator_IronWellons32,
+    SeedInitializer_Uint32
   ]
 ]
 
