@@ -3,14 +3,14 @@
  */
 export {RandomGenerator_Alea, SeedInitializer_Alea, Mash} from './alea&mash.js'
 export {RandomGenerator_Sfc32} from './sfc32.js'
-export {RandomGenerator_Pcg32, RandomGenerator_Pcg32_alt, RandomGenerator_Pcg32_alt_bigint} from './pcg32.js'
+export {RandomGenerator_Pcg32, RandomGenerator_Pcg32_alt_bigint} from './pcg32.js'
 export {RandomGenerator_Mulberry32} from './mulberry32.js'
 export {SeedInitializer_Uint32} from './uint32initializer.js'
 export {SeedInitializer_Uint64} from './uint64initializer.js'
 export {RandomGenerator_WebCrypto, SeedInitializer_WebCrypto} from './webCrypto.js'
 export {RandomGenerator_IronWellons32} from './ironWellons32.js';
+export {RandomGenerator_WellonsTriple32} from './wellonsTriple32.js';
 export {Xmur3} from './xmur3.js'
-export * as longfn from './longfn.js'
 export {Uint64} from './uint64.js'
 
 function mandatory(name) {throw Error('`'+name+'` is a mandatory parameter.')}
@@ -21,8 +21,8 @@ const notReadyError = () => {throw Error('A `readyPromise` property was set on t
  */
 export class PluggablePRNG {
   #SeedInitializer; #RandomGenerator; #initialState
-  #isAsync = false
-  #seedGenIsAsync = false
+  #isAsync
+  #seedGenIsAsync
   /**
    * @param {Object} options An object with the options to use.
    * @param {*} [options.seed] The seed to initialize the `RandomGenerator` with. If used together with a `SeedInitializer` it can usually be any string or number which the `SeedInitializer` will convert into the proper format required by the `RandomGenerator` (if the `RandomGenerator` is designed to be compatible with it).
@@ -73,8 +73,13 @@ export class PluggablePRNG {
         this.skipAhead = async function(times=1) {
           for (let i=0; i<times; i++) await this.randomUint32()
         }
-        this.randomInteger = async function(min = mandatory('min'), max = mandatory('max')) {
-          if (min > max) {const pMin = min; min = max; max = pMin}
+        this.randomInteger = async function(minOrMax = 0, max = 0xFFFF_FFFF) {
+          let min = minOrMax
+          switch (arguments.length) {
+            case 0: return await this.randomUint32()
+            case 1: max = minOrMax; min = 0; break
+            case 2: if (minOrMax > max) {min = max; max = minOrMax}; break
+          }
           const range = max - min
           if (range > Number.MAX_SAFE_INTEGER) throw Error('The difference between min and max must not be more than Number.MAX_SAFE_INTEGER.')
           let randomInt = await this.randomUint32()
@@ -113,8 +118,13 @@ export class PluggablePRNG {
         this.skipAhead = function(times=1) {
           for (let i=0; i<times; i++) this.randomUint32()
         }
-        this.randomInteger = function(min = mandatory('min'), max = mandatory('max')) {
-          if (min > max) {const pMin = min; min = max; max = pMin}
+        this.randomInteger = function(minOrMax = 0, max = 0xFFFF_FFFF) {
+          let min = minOrMax
+          switch (arguments.length) {
+            case 0: return this.randomUint32()
+            case 1: max = minOrMax; min = 0; break
+            case 2: if (minOrMax > max) {min = max; max = minOrMax}; break
+          }
           const range = max - min
           if (range > Number.MAX_SAFE_INTEGER) throw Error('The difference between min and max must not be more than Number.MAX_SAFE_INTEGER.')
           let randomInt = this.randomUint32()
@@ -177,7 +187,7 @@ export class PluggablePRNG {
   }
 
   /**
-   * Check if the PRNG is async, meaning calls to it will return promises which you can resolve with `await`. 
+   * Check if the PRNG is async, meaning calls to it will return promises which you can resolve with `await`. This must be checked after readyPromise has been awaited (if readyPromise is not undefined).
    * 
    * E.g. `await prng.randomFloat32()`. 
    */
@@ -186,12 +196,12 @@ export class PluggablePRNG {
   }
 
   /**
-   * Get a random integer from min to max. Internally it's using 1 call to `randomUint32` if the difference between `min` and `max` is less than 4_294_967_296 (0xFFFF_FFFF), else 2 calls.
-   * @param {number} min The minimum value.
-   * @param {number} max The maximum value.
+   * Get a random integer from min to max. Internally it's using 1 call to `randomUint32` if the difference between `min` and `max` is less than 4_294_967_296 (0xFFFF_FFFF), else 2 calls. If no arguments are supplied then it will pick an integer from 0x00 to 0xFFFF_FFFF.
+   * @param {number} [minOrMax] The minimum value.
+   * @param {number} [max] The maximum value.
    * @returns {number} An integer.
    */
-  randomInteger(min, max){notReadyError()}
+  randomInteger(minOrMax, max){notReadyError()}
 
   /**
    * Get a random float from 0 to 1 with 32-bit (single) precision. Optionally change this range by providing `max` or `min, max`. Internally it's using 1 call to `randomUint32` if not given any parameters, else 2 calls.

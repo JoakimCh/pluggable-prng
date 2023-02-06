@@ -1,6 +1,9 @@
 
-const nodejs = globalThis.process?.versions?.node
-if (nodejs) globalThis['crypto'] = (await import('crypto')).webcrypto
+if (globalThis.process?.versions?.node && !('crypto' in globalThis)) {
+	// this if done if the node.js version is less than 19
+	globalThis['crypto'] = (await import('node:crypto')).webcrypto
+	globalThis['CryptoKey'] = crypto.CryptoKey
+}
 
 /**
  * A cryptographically secure `RandomGenerator` using the Web Crypto API's AES-CTR encryption to achieve this. Designed to be used with `SeedInitializer_WebCrypto` for the generation of a secure encryption key used as its input seed. Compared to the other PRNGs it's extremely slow, depending on your usage this might be OK or NOT. Use cases could be card and casino games, etc.
@@ -14,11 +17,7 @@ export class RandomGenerator_WebCrypto {
   #bufferedUint32s
   #stateJustImported
 	constructor(key) {
-    if (nodejs) {
-      if (!(key instanceof crypto.CryptoKey)) throw Error('The seed must be an instance of a CryptoKey (AES-CTR).')
-    } else {
-      if (!(key instanceof CryptoKey)) throw Error('The seed must be an instance of a CryptoKey (AES-CTR).')
-    }
+    if (!(key instanceof CryptoKey)) throw Error('The seed must be an instance of a CryptoKey (AES-CTR).')
 		this.#key = key
 	}
   async #bufferRandomData(incrementCounter = true) {

@@ -2,15 +2,12 @@
 Original code: https://www.pcg-random.org/download.html
 *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
-
-I've written 3 different JavaScript implementations of the same algorithm. This was because I wanted to figure out how to achieve the best possible performance when doing 64-bit arithmetics in JavaScript (which is not natively supported in the language). What I learned is that BigInts are very slow and that you can optimize your code a lot by doing some small changes... That using BigInts are straight foward and is a good idea to keep as a reference implementation to test your faster implementations against to nail out any bugs.
 */
 
-import * as longfn from './longfn.js'
 import {Uint64} from './uint64.js'
 
 /**
- * A `RandomGenerator` using the PCG32 algorithm. It's compatible with any `SeedInitializer` returning unsigned integers or BigInts up to 64 bits. This implementation is mainly meant as a demonstration on how to do 64-bit arithmetics in JavaScript using BigInts and is therefore very slow (because BigInt arithmetics are).
+ * A `RandomGenerator` using the PCG32 algorithm. It's compatible with any `SeedInitializer` returning unsigned integers or BigInts up to 64 bits. This implementation is using native BigInts and is therefore a bit slow (because BigInt arithmetics are). It's mainly meant as a demonstration on how to do 64-bit arithmetics in JavaScript.
  */
  export class RandomGenerator_Pcg32_alt_bigint {
   #state; #variant
@@ -42,9 +39,9 @@ import {Uint64} from './uint64.js'
 }
 
 /**
- * A `RandomGenerator` using the PCG32 algorithm. It's compatible with any `SeedInitializer` returning unsigned integers or BigInts up to 64 bits. It's not as fast as some other PRNGs (because JavaScript can't natively do 64-bit arithmetics). This implementation is more than 2x faster than the BigInt implementation, but still a tiny bit slower than the `longfn` implementation.
+ * A `RandomGenerator` using the PCG32 algorithm. It's compatible with any `SeedInitializer` returning unsigned integers or BigInts up to 64 bits. It's not as fast as some other PRNGs (because JavaScript can't natively do 64-bit arithmetics). This implementation is using uint64.js which is faster than using native BigInts.
  */
-export class RandomGenerator_Pcg32_alt {
+export class RandomGenerator_Pcg32 {
   #state; #variant
   #magicNumber = new Uint64(0x5851_F42D, 0x4C95_7F2D)
   static seedsNeeded = 2
@@ -72,44 +69,5 @@ export class RandomGenerator_Pcg32_alt {
   importState(state) {
     this.#state   = state[0].copy()
     this.#variant = state[1].copy()
-  }
-}
-
-/**
- * A `RandomGenerator` using the PCG32 algorithm. It's compatible with any `SeedInitializer` returning unsigned integers or BigInts up to 64 bits. It's not as fast as some other PRNGs (because JavaScript can't natively do 64-bit arithmetics), but this is the fastest JS implementation that I know of (made possible by using the `longfn` library).
- */
-export class RandomGenerator_Pcg32 {
-  #state; #variant
-  #magicNumber = longfn.fromBigInt(0x5851_F42D_4C95_7F2Dn, true)
-  // #mask32 = longfn.fromNumber(0xFFFF_FFFF)
-  static seedsNeeded = 2
-  constructor(state, variant) {
-    if (arguments.length != 2) throw Error('Pcg32 require 2 integer seeds.')
-    this.#state   = typeof state   === 'bigint' ? state  : BigInt(state)
-    this.#variant = typeof variant === 'bigint' ? variant: BigInt(variant)
-    this.#state   = longfn.fromBigInt(BigInt.asUintN(64,  this.#state), true)
-    this.#variant = longfn.fromBigInt(BigInt.asUintN(64, (this.#variant << 1n) | 1n), true)
-    this.randomUint32(); this.randomUint32() // get to a functional state
-  }
-  randomUint32() {
-    const oldstate = longfn.copy(this.#state, {})
-    longfn.mul(oldstate, this.#magicNumber, this.#state)
-    longfn.add(this.#state, this.#variant, this.#state)
-    let xorshifted = longfn.shru(oldstate, 18, {})
-    longfn.xor(xorshifted, oldstate, xorshifted)
-    longfn.shru(xorshifted, 27, xorshifted)
-    //longfn.and(xorshifted, this.#mask32, xorshifted)
-    xorshifted = longfn.toInt(xorshifted)
-    const rot = longfn.toInt(longfn.shru(oldstate, 59, oldstate))
-    return ((xorshifted >>> rot) | (xorshifted << ((-rot) & 31))) >>> 0
-    // const result = longfn.or(longfn.shru(xorshifted, rot, {}), longfn.shl(xorshifted, (-rot) & 31, {}), {})
-    // return longfn.toInt(result)
-  }
-  exportState() {
-    return [longfn.copy(this.#state, {}), longfn.copy(this.#variant, {})]
-  }
-  importState(state) {
-    longfn.copy(state[0], this.#state)
-    longfn.copy(state[1], this.#variant)
   }
 }

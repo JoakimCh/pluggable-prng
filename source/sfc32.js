@@ -11,7 +11,7 @@ export class RandomGenerator_Sfc32 {
   static seedsNeeded = 3 // tell the SeedInitializer to call the constructor with 3 seeds (instead of the default 1)
   constructor(uint32_a, uint32_b, uint32_c) {
     if (arguments.length != 3) throw Error('Sfc32 require 3 integer seeds.')
-    if (typeof uint32_a != 'number' || !Number.isInteger(uint32_a)) throw Error('Sfc32 require integer seeds, this is not an integer: '+uint32_a)
+    if (!Number.isInteger(uint32_a)) throw Error('Sfc32 require integer seeds, this is not an integer: '+uint32_a)
     this.#a = uint32_a >>> 0
     this.#b = uint32_b >>> 0
     this.#c = uint32_c >>> 0

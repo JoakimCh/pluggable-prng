@@ -1,10 +1,13 @@
 # pluggable-prng
 
 ### Description
-An [ES module](https://flaviocopes.com/es-modules/) with a class providing a [Pseudo-random number generator](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) which is "pluggable", meaning you can plug-in any PRNG algorithm. It's also ["seedable"](https://en.wikipedia.org/wiki/Random_seed) meaning that it can have a reproducible ([deterministic](https://en.wikipedia.org/wiki/Deterministic_algorithm)) output based on its starting seed. The module includes plugins for some fast and good (insecure) PRNGs ([Alea](https://github.com/nquinlan/better-random-numbers-for-javascript-mirror#alea), [Sfc32](http://pracrand.sourceforge.net/RNG_engines.txt), [Mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c), [Pcg32](https://www.pcg-random.org/download.html)), but also a fast [cryptographically secure PRNG](https://en.wikipedia.org/wiki/Cryptographically-secure_pseudorandom_number_generator) which is using the [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API). It's compatible with Node.js, [Deno](https://deno.land)¹ and the browser².
+An [ES module](https://flaviocopes.com/es-modules/) providing a [Pseudo-random number generator](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) which is "pluggable", meaning you can plug-in any PRNG algorithm.
 
-1. The Web Crypto PRNG is not compatible with Deno as of Deno v1.13.2, everything else is.
-2. Everything runs fine in a [Chromium based browser](https://en.wikipedia.org/wiki/Chromium_(web_browser)), for other browsers use [Babel](https://babeljs.io).
+It's also ["seedable"](https://en.wikipedia.org/wiki/Random_seed) meaning that it can have a reproducible ([deterministic](https://en.wikipedia.org/wiki/Deterministic_algorithm)) output based on its starting seed.
+
+The module includes plugins for some fast and good (insecure) PRNGs ([Alea](https://github.com/nquinlan/better-random-numbers-for-javascript-mirror#alea), [Sfc32](http://pracrand.sourceforge.net/RNG_engines.txt), [Mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c), [Pcg32](https://www.pcg-random.org/download.html), [IronWellons32](https://github.com/skeeto/hash-prospector/issues/19#issuecomment-1120105785) and [WellonsTriple32](https://github.com/skeeto/hash-prospector#three-round-functions)).
+
+But also a fast [cryptographically secure PRNG](https://en.wikipedia.org/wiki/Cryptographically-secure_pseudorandom_number_generator) which is using the [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API). It's compatible with Node.js, [Deno](https://deno.land) and the browser.
 
 ### Funding
 
@@ -18,8 +21,8 @@ If you find this useful then please consider helping me out (I'm jobless and sic
 
 ### Function list (class PluggablePRNG)
 
-* `constructor({ [seed], RandomGenerator, [SeedInitializer] })`
-* `randomInteger(min, max)`
+* `constructor({[seed], RandomGenerator, [SeedInitializer]})`
+* `randomInteger([minOrMax], [max])`
 * `randomFloat32([minOrMax], [max])`
 * `randomFloat64([minOrMax], [max])`
 * `randomUint32()`
@@ -37,35 +40,32 @@ If you find this useful then please consider helping me out (I'm jobless and sic
 * `RandomGenerator_Sfc32`
 * `RandomGenerator_Pcg32`
 * `RandomGenerator_Mulberry32`
+* `RandomGenerator_IronWellons32`
+* `RandomGenerator_WellonsTriple32`
 * `RandomGenerator_WebCrypto`
 * `SeedInitializer_Alea`
 * `SeedInitializer_Uint32`
 * `SeedInitializer_Uint64`
 * `SeedInitializer_WebCrypto`
-* `Xmur3` Hash function
-* `Mash` Hash function
-* `longfn` [64-bit arithmetic library](https://www.npmjs.com/package/longfn) (used by Pcg32)
-* `Uint64` A slower (but easier) alternative to longfn
+* `Xmur3` The hash function used in `SeedInitializer_Uint32`.
+* `Mash` The hash function used in `SeedInitializer_Alea`.
+* `Uint64` A 64-bit arithmetic library (faster than using BigInts).
 
-The 4 last exports in this list are used internally but was made available to anyone wanting to do whatever with them.
+The 3 last exports in this list are used internally but was made available to anyone wanting to do whatever with them.
 
 ### Performance
 
-On my `Intel® Core™ i5-4200U CPU @ 1.60GHz × 4` this is a typical result (notice the runtime optimization kicking in after some iterations):
+On my `Intel® Core™ i5-10210U CPU @ 1.60GHz × 8` this is a typical result:
 ```
-Iterations: 10000
-Alea: 102.733ms
-Mulberry32: 86.849ms
-Sfc32: 49.118ms
-Pcg32: 75.141ms
-WebCrypto: 151.346ms
-
-Iterations: 10000
-Alea: 30.941ms
-Mulberry32: 25.302ms
-Sfc32: 35.392ms
-Pcg32: 53.336ms
-WebCrypto: 90.856ms
+Iterations: 400000
+Alea: 670ms
+Mulberry32: 653ms
+Sfc32: 927ms
+Pcg32: 1532ms
+Pcg32 (BigInt reference impl.): 2843ms
+WebCrypto: 1363ms
+IronWellons32: 666ms
+WellonsTriple32: 684ms
 ```
 
 ### How to use

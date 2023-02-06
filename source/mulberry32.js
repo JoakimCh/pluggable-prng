@@ -8,7 +8,7 @@ https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
  */
 export class RandomGenerator_Mulberry32 {
   constructor(uint32seed) {
-    if (typeof uint32seed != 'number' || !Number.isInteger(uint32seed)) throw Error('Mulberry32 require an integer seed, this is not an integer: '+uint32seed)
+    if (!Number.isInteger(uint32seed)) throw Error('Mulberry32 requires an integer seed, instead received: '+uint32seed)
     this.state = uint32seed >>> 0
   }
   randomUint32() {

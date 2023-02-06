@@ -4,9 +4,11 @@ import {
   RandomGenerator_Alea,
   SeedInitializer_Alea,
   RandomGenerator_IronWellons32,
+  RandomGenerator_WellonsTriple32,
   RandomGenerator_Mulberry32,
   RandomGenerator_Sfc32,
   RandomGenerator_Pcg32,
+  RandomGenerator_Pcg32_alt_bigint,
   SeedInitializer_Uint32,
   SeedInitializer_Uint64,
   RandomGenerator_WebCrypto,
@@ -33,12 +35,20 @@ const prngs = [
     RandomGenerator_Pcg32,
     SeedInitializer_Uint64
   ], [
+    'Pcg32 (BigInt reference impl.)',
+    RandomGenerator_Pcg32_alt_bigint,
+    SeedInitializer_Uint64
+  ], [
     'WebCrypto',
     RandomGenerator_WebCrypto,
     SeedInitializer_WebCrypto
   ], [
     'IronWellons32',
     RandomGenerator_IronWellons32,
+    SeedInitializer_Uint32
+  ], [
+    'WellonsTriple32',
+    RandomGenerator_WellonsTriple32,
     SeedInitializer_Uint32
   ]
 ]

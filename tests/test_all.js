@@ -4,6 +4,7 @@ import {
   RandomGenerator_Alea,
   SeedInitializer_Alea,
   RandomGenerator_IronWellons32,
+  RandomGenerator_WellonsTriple32,
   RandomGenerator_Mulberry32,
   RandomGenerator_Sfc32,
   RandomGenerator_Pcg32,
@@ -39,6 +40,10 @@ const prngs = [
   ], [
     'IronWellons32',
     RandomGenerator_IronWellons32,
+    SeedInitializer_Uint32
+  ], [
+    'WellonsTriple32',
+    RandomGenerator_WellonsTriple32,
     SeedInitializer_Uint32
   ]
 ]
